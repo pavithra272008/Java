@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle}">Municipal Smart Public Beach Safety & Water Quality Monitoring System</title>
+    <!-- Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body class="marine-theme">
+
+    <!-- Top Municipal Bar -->
+    <div class="top-announcement-bar">
+        <div class="announcement-content">
+            <span class="live-pill"><span class="pulse-dot"></span> LIVE TELEMETRY</span>
+            <span class="weather-telemetry">
+                <span>🌊 Tide: <strong>High (1.6m)</strong></span>
+                <span class="sep">•</span>
+                <span>🌡️ Water Temp: <strong>22.4°C</strong></span>
+                <span class="sep">•</span>
+                <span>💨 Current: <strong>0.5 kt NW</strong></span>
+                <span class="sep">•</span>
+                <span>☀️ UV Index: <strong>6 (Moderate)</strong></span>
+            </span>
+            <div class="top-bar-actions">
+                <span class="officer-badge">🛡️ Beach Safety Director Active</span>
+                <button id="btn-quick-seed" class="btn-chip" title="Load sample beach sectors and telemetry data for demo">
+                    ⚡ Load Demo Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Navigation Header -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand-group">
+                <div class="brand-crest">
+                    <span class="crest-icon">🌊</span>
+                </div>
+                <div class="brand-text">
+                    <div class="brand-super">PACIFICA COASTAL MUNICIPALITY • DEPT OF PUBLIC SAFETY</div>
+                    <h1 class="brand-title">AquaGuard Smart Beach Safety Portal</h1>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="nav-tabs" role="tablist">
+                <button class="nav-tab active" data-tab="tab-overview" role="tab">
+                    <span class="tab-icon">📊</span> Overview & Telemetry
+                </button>
+                <button class="nav-tab" data-tab="tab-samples" role="tab">
+                    <span class="tab-icon">💧</span> Water Quality Lab
+                </button>
+                <button class="nav-tab" data-tab="tab-sectors" role="tab">
+                    <span class="tab-icon">🏖️</span> Beach Zones
+                </button>
+                <button class="nav-tab" data-tab="tab-lifeguards" role="tab">
+                    <span class="tab-icon">🛟</span> Lifeguard Dispatch
+                </button>
+                <button class="nav-tab" data-tab="tab-finance" role="tab">
+                    <span class="tab-icon">📑</span> Commercial & Permits
+                </button>
+                <button class="nav-tab" data-tab="tab-reports" role="tab">
+                    <span class="tab-icon">📈</span> Municipal Reports
+                </button>
+            </nav>
+
+            <div class="header-cta">
+                <button id="btn-open-sample-modal" class="btn-primary">
+                    <span class="btn-icon">+</span> Record Sample
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Notice Toast -->
+    <div id="notice-toast" class="toast" role="alert" aria-live="assertive" hidden>
+        <span id="toast-icon" class="toast-icon">ℹ️</span>
+        <span id="toast-message" class="toast-message">Notification message</span>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="main-container">
+
+        <!-- Dynamic High-Risk Emergency Alert Banner (Shown when any sector is RED) -->
+        <div id="emergency-alert-banner" class="emergency-banner" style="display: none;">
+            <div class="alert-pulse-icon">⚠️</div>
+            <div class="alert-info">
+                <div class="alert-headline">MUNICIPAL WATER QUALITY WARNING: ELEVATED BACTERIA DETECTED</div>
+                <div id="emergency-alert-text" class="alert-desc">
+                    One or more coastal sectors have exceeded the public health threshold of 100 CFU/100mL.
+                    Red warning flags hoisted. Swimming advisory in effect.
+                </div>
+            </div>
+            <button id="btn-view-alert-samples" class="btn-alert-action">Inspect Flagged Sectors →</button>
+        </div>
+
+        <!-- Safe Status Banner (Shown when all samples are GREEN) -->
+        <div id="safe-status-banner" class="safe-banner">
+            <div class="safe-icon">✅</div>
+            <div class="safe-info">
+                <strong>COASTAL WATER QUALITY COMPLIANT:</strong> All active sectors currently meet municipal safety bacteriological standards (&lt;100 CFU/100mL). Public swimming permitted in designated green zones.
+            </div>
+            <span class="timestamp-badge" id="last-updated-badge">Updated just now</span>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 1: OVERVIEW & LIVE TELEMETRY          -->
+        <!-- ========================================== -->
+        <section id="tab-overview" class="tab-content active">
+            <!-- Key Metric Statistics -->
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Monitored Sectors</span>
+                        <span class="kpi-badge badge-blue">Active Coastal Grid</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <span class="kpi-value" id="kpi-total-sectors">0</span>
+                        <span class="kpi-icon">🏖️</span>
+                    </div>
+                    <div class="kpi-footer">Across 8.4 km of municipal shoreline</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Water Quality Index</span>
+                        <span class="kpi-badge badge-green" id="kpi-compliance-badge">100% Safe</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <span class="kpi-value" id="kpi-green-percent">100%</span>
+                        <span class="kpi-icon">🟢</span>
+                    </div>
+                    <div class="kpi-footer">Meeting EPA bacteriological safety limit</div>
+                </div>
+
+                <div class="kpi-card alert-kpi-card" id="kpi-red-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Active Red Hazard Flags</span>
+                        <span class="kpi-badge badge-red" id="kpi-red-badge">0 Alerts</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <span class="kpi-value" id="kpi-red-count">0</span>
+                        <span class="kpi-icon">🚩</span>
+                    </div>
+                    <div class="kpi-footer" id="kpi-red-footer">No public swimming bans active</div>
+                </div>
+
+                <div class="kpi-card">
+                    <div class="kpi-header">
+                        <span class="kpi-label">Avg Enterococci Count</span>
+                        <span class="kpi-badge badge-purple">&lt; 100 CFU Threshold</span>
+                    </div>
+                    <div class="kpi-value-row">
+                        <span class="kpi-value" id="kpi-avg-bacteria">0.0</span>
+                        <span class="kpi-subtext">CFU/100mL</span>
+                    </div>
+                    <div class="kpi-footer">Based on latest laboratory telemetry</div>
+                </div>
+            </div>
+
+            <!-- Beach Sectors Live Telemetry Board -->
+            <div class="section-card mt-6">
+                <div class="card-header">
+                    <div>
+                        <div class="card-eyebrow">OCEAN TELEMETRY &amp; SWIM RISK MATRIX</div>
+                        <h2 class="card-title">Live Beach Sector Status Board</h2>
+                        <p class="card-desc">Visual swim risk flags configured automatically by latest laboratory bacteriological telemetry.</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="btn-secondary" id="btn-refresh-overview">
+                            <span>🔄</span> Refresh Telemetry
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sector Cards Grid -->
+                <div id="sector-cards-grid" class="sector-cards-grid">
+                    <div class="loading-state">Loading coastal telemetry sectors...</div>
+                </div>
+            </div>
+
+            <!-- Lifeguard and Buoy Quick Telemetry Row -->
+            <div class="two-col-grid mt-6">
+                <!-- Marine Telemetry Feed -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">OCEAN SENSOR BUOYS</div>
+                            <h3 class="card-title">Real-time Telemetry Stream</h3>
+                        </div>
+                        <span class="telemetry-live-dot"></span>
+                    </div>
+                    <div class="telemetry-list">
+                        <div class="telemetry-item">
+                            <div class="telemetry-icon-box">🌊</div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-name">Buoy Alpha (Sector 1 - Central)</div>
+                                <div class="telemetry-meta">Wave Height: 1.2m • Period: 8s • Current: 0.4 kt NW</div>
+                            </div>
+                            <div class="telemetry-reading">Moderate Swell</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-icon-box">🌡️</div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-name">Sensor Array Bravo (Emerald Bay)</div>
+                                <div class="telemetry-meta">Water Temp: 22.8°C • Salinity: 34.8 PSU • DO: 7.2 mg/L</div>
+                            </div>
+                            <div class="telemetry-reading text-emerald">Optimal Clarity</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telemetry-icon-box">💨</div>
+                            <div class="telemetry-info">
+                                <div class="telemetry-name">Outer Reef Buoy Charlie</div>
+                                <div class="telemetry-meta">Tide: High Ebbing • Rip Current Risk: Low-Moderate</div>
+                            </div>
+                            <div class="telemetry-reading text-amber">Rip Watch</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Water Ingestion Feed -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">RECENT WATER TESTING</div>
+                            <h3 class="card-title">Latest Laboratory Ingestions</h3>
+                        </div>
+                        <button class="link-btn" id="btn-jump-to-samples">View All Samples →</button>
+                    </div>
+                    <div id="recent-samples-feed" class="recent-samples-feed">
+                        <div class="empty-state">No water samples recorded yet.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 2: WATER QUALITY LAB & SAMPLES        -->
+        <!-- ========================================== -->
+        <section id="tab-samples" class="tab-content">
+            <div class="two-col-grid-sidebar">
+                <!-- Sample Record Form Panel -->
+                <div class="section-card form-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">LAB INGESTION MODULE</div>
+                            <h2 class="card-title">Ingest Water Quality Sample</h2>
+                            <p class="card-desc">Post laboratory bacteriological testing data via <code class="api-tag">POST /api/beach/samples</code>. Auto-triggers RED status when threshold is exceeded.</p>
+                        </div>
+                    </div>
+
+                    <form id="water-sample-form" class="smart-form">
+                        <div class="form-group">
+                            <label for="form-sample-sector">Beach Sector <span class="required">*</span></label>
+                            <select id="form-sample-sector" required>
+                                <option value="">Select a beach sector...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-with-action">
+                                <label for="form-sample-date">Collection Date &amp; Time <span class="required">*</span></label>
+                                <button type="button" id="btn-set-now" class="btn-micro">Set Current Time</button>
+                            </div>
+                            <input type="datetime-local" id="form-sample-date" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="form-bacteria-count">Bacteria Count (CFU/100mL) <span class="required">*</span></label>
+                                <input type="number" id="form-bacteria-count" min="0" step="0.1" placeholder="e.g. 45.0" required>
+                                <span class="input-hint">Enterococci / Fecal Coliform</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="form-safety-threshold">Threshold (CFU/100mL) <span class="required">*</span></label>
+                                <input type="number" id="form-safety-threshold" min="1" step="0.1" value="100.0" required>
+                                <span class="input-hint">EPA standard limit: 100.0</span>
+                            </div>
+                        </div>
+
+                        <!-- Live Risk Status Predictor Preview -->
+                        <div class="risk-preview-box" id="risk-preview-box">
+                            <div class="risk-preview-label">PREDICTED RISK STATUS:</div>
+                            <div class="risk-preview-pill" id="risk-preview-pill">
+                                <span class="preview-dot green-dot"></span>
+                                <span id="risk-preview-text">🟢 GREEN — Safe for Swimming</span>
+                            </div>
+                            <div class="risk-preview-rule" id="risk-preview-rule">
+                                Bacteria count is within safe municipal limits (&le; 100 CFU).
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btn-submit-sample" class="btn-primary full-width">
+                            <span>🧪</span> Ingest Laboratory Sample
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Samples Log Table Panel -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">LABORATORY TELEMETRY ARCHIVE</div>
+                            <h2 class="card-title">Water Sample Records</h2>
+                            <p class="card-desc">Bacteriological test history with automatic safety risk classification.</p>
+                        </div>
+                        <div class="filter-group">
+                            <select id="filter-sample-risk" class="select-filter">
+                                <option value="ALL">All Risk Levels</option>
+                                <option value="GREEN">🟢 GREEN Safe Only</option>
+                                <option value="RED">🔴 RED Hazard Only</option>
+                            </select>
+                            <button id="btn-refresh-samples-table" class="btn-icon-btn" title="Refresh Samples">🔄</button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Sample ID</th>
+                                    <th>Sector Name</th>
+                                    <th>Collection Timestamp</th>
+                                    <th>Bacteria Count</th>
+                                    <th>Threshold</th>
+                                    <th>Compliance Bar</th>
+                                    <th>Risk Flag</th>
+                                </tr>
+                            </thead>
+                            <tbody id="samples-table-body">
+                                <tr>
+                                    <td colspan="7" class="empty-state">Loading water sample records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: BEACH ZONES & SECTORS              -->
+        <!-- ========================================== -->
+        <section id="tab-sectors" class="tab-content">
+            <div class="two-col-grid-sidebar">
+                <!-- Add Sector Form -->
+                <div class="section-card form-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">MASTER DATA MODULE</div>
+                            <h2 class="card-title">Add Beach Sector</h2>
+                            <p class="card-desc">Register a new coastal municipal safety sector via <code class="api-tag">POST /api/beach/sectors</code>.</p>
+                        </div>
+                    </div>
+
+                    <form id="beach-sector-form" class="smart-form">
+                        <div class="form-group">
+                            <label for="form-sector-name">Sector Name <span class="required">*</span></label>
+                            <input type="text" id="form-sector-name" maxlength="120" placeholder="e.g. Central Public Beach Zone 1" required>
+                            <span class="input-hint">Unique municipality sector identifier</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="form-sector-location">Geographic Location / Landmark</label>
+                            <input type="text" id="form-sector-location" maxlength="250" placeholder="e.g. North Coast, Lifeguard Towers 1-4">
+                            <span class="input-hint">Shoreline perimeter, towers, or marine cove</span>
+                        </div>
+
+                        <!-- Quick Sector Presets -->
+                        <div class="preset-group">
+                            <span class="preset-label">Quick Preset Sectors:</span>
+                            <div class="preset-chips">
+                                <button type="button" class="chip-preset" data-name="Central Public Beach Zone 1" data-loc="North Coastal Shoreline, Towers 1-4">Central Zone 1</button>
+                                <button type="button" class="chip-preset" data-name="Emerald Bay South Shore" data-loc="Marine Sanctuary Cove">Emerald Bay</button>
+                                <button type="button" class="chip-preset" data-name="Lighthouse Reef Sector 3" data-loc="Outer Bluff &amp; Surfing Beach">Lighthouse Reef</button>
+                                <button type="button" class="chip-preset" data-name="Pelican Point Estuary" data-loc="Tidal River Mouth &amp; Lagoon">Pelican Point</button>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="btn-submit-sector" class="btn-primary full-width">
+                            <span>🏖️</span> Register Beach Sector
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Sector Master Table -->
+                <div class="section-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="card-eyebrow">MUNICIPAL ASSET REGISTER</div>
+                            <h2 class="card-title">Registered Beach Sectors</h2>
+                            <p class="card-desc">All active coastal sectors under municipal safety surveillance.</p>
+                        </div>
+                        <button id="btn-refresh-sectors-table" class="btn-secondary">
+                            <span>🔄</span> Refresh Sectors
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Sector ID</th>
+                                    <th>Sector Name</th>
+                                    <th>Location / Coastline</th>
+                                    <th>Surveillance Status</th>
+                                    <th>Telemetry Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sectors-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Loading registered sectors...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 4: LIFEGUARD DISPATCH & OPERATIONS    -->
+        <!-- ========================================== -->
+        <section id="tab-lifeguards" class="tab-content">
+            <div class="section-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-eyebrow">BEACH SAFETY DIRECTOR MODULE</div>
+                        <h2 class="card-title">Lifeguard Patrol &amp; Rescue Assets</h2>
+                        <p class="card-desc">Operational dispatch logs, rescue jet-ski readiness, and swim risk flag configuration.</p>
+                    </div>
+                    <span class="status-pill"><span class="status-dot"></span> 8 Towers Manned</span>
+                </div>
+
+                <!-- Patrol Towers Grid -->
+                <div class="dispatch-grid">
+                    <div class="dispatch-card status-active">
+                        <div class="dispatch-header">
+                            <span class="tower-num">Tower 01 — North Pier</span>
+                            <span class="badge badge-green">ON PATROL</span>
+                        </div>
+                        <div class="dispatch-body">
+                            <div class="dispatch-detail"><span>Sector:</span> <strong>Central Public Beach Zone 1</strong></div>
+                            <div class="dispatch-detail"><span>Lifeguards:</span> <strong>Capt. R. Evans, M. Chen</strong></div>
+                            <div class="dispatch-detail"><span>Flag Status:</span> <strong id="tower-1-flag" class="text-emerald">🟢 GREEN FLAG</strong></div>
+                            <div class="dispatch-detail"><span>Rescue Gear:</span> Rescue Board #04, AED Kit A</div>
+                        </div>
+                    </div>
+
+                    <div class="dispatch-card status-active">
+                        <div class="dispatch-header">
+                            <span class="tower-num">Tower 02 — Central Dunes</span>
+                            <span class="badge badge-green">ON PATROL</span>
+                        </div>
+                        <div class="dispatch-body">
+                            <div class="dispatch-detail"><span>Sector:</span> <strong>Central Public Beach Zone 1</strong></div>
+                            <div class="dispatch-detail"><span>Lifeguards:</span> <strong>J. Miller, S. Gomez</strong></div>
+                            <div class="dispatch-detail"><span>Flag Status:</span> <strong id="tower-2-flag" class="text-emerald">🟢 GREEN FLAG</strong></div>
+                            <div class="dispatch-detail"><span>Rescue Gear:</span> Rescue Jet-Ski #WS-01</div>
+                        </div>
+                    </div>
+
+                    <div class="dispatch-card status-active">
+                        <div class="dispatch-header">
+                            <span class="tower-num">Tower 03 — Lighthouse Bluff</span>
+                            <span class="badge badge-amber" id="tower-3-badge">ALERT PATROL</span>
+                        </div>
+                        <div class="dispatch-body">
+                            <div class="dispatch-detail"><span>Sector:</span> <strong>Lighthouse Reef Sector 3</strong></div>
+                            <div class="dispatch-detail"><span>Lifeguards:</span> <strong>Lt. D. Vance, K. Patel</strong></div>
+                            <div class="dispatch-detail"><span>Flag Status:</span> <strong id="tower-3-flag" class="text-amber">⚠️ MONITORING</strong></div>
+                            <div class="dispatch-detail"><span>Rescue Gear:</span> Jet-Ski #WS-02, Rip Tow Harness</div>
+                        </div>
+                    </div>
+
+                    <div class="dispatch-card status-active">
+                        <div class="dispatch-header">
+                            <span class="tower-num">Tower 04 — Emerald Cove</span>
+                            <span class="badge badge-green">ON PATROL</span>
+                        </div>
+                        <div class="dispatch-body">
+                            <div class="dispatch-detail"><span>Sector:</span> <strong>Emerald Bay South Shore</strong></div>
+                            <div class="dispatch-detail"><span>Lifeguards:</span> <strong>A. Torres, H. Brooks</strong></div>
+                            <div class="dispatch-detail"><span>Flag Status:</span> <strong class="text-emerald">🟢 GREEN FLAG</strong></div>
+                            <div class="dispatch-detail"><span>Rescue Gear:</span> Zodiac Inflatable Rescue Boat</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rescue Inventory Section -->
+                <div class="mt-6">
+                    <h3 class="subsection-title">Rescue Gear &amp; Watercraft Assets Master</h3>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Asset Code</th>
+                                    <th>Equipment Description</th>
+                                    <th>Category</th>
+                                    <th>Assigned Sector / Station</th>
+                                    <th>Maintenance Status</th>
+                                    <th>Book Valuation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>AST-JET-01</code></td>
+                                    <td>Yamaha WaveRunner FX High-Output Rescue Jet-Ski</td>
+                                    <td>Rescue Watercraft</td>
+                                    <td>Central Public Beach Zone 1</td>
+                                    <td><span class="badge badge-green">Operational</span></td>
+                                    <td>$24,500.00</td>
+                                </tr>
+                                <tr>
+                                    <td><code>AST-JET-02</code></td>
+                                    <td>Sea-Doo SAR Search &amp; Rescue Vessel</td>
+                                    <td>Rescue Watercraft</td>
+                                    <td>Lighthouse Reef Sector 3</td>
+                                    <td><span class="badge badge-green">Operational</span></td>
+                                    <td>$28,000.00</td>
+                                </tr>
+                                <tr>
+                                    <td><code>AST-TEL-08</code></td>
+                                    <td>Multiparameter Ocean Current &amp; Telemetry Sonde</td>
+                                    <td>Testing Gear</td>
+                                    <td>Municipal Marine Lab</td>
+                                    <td><span class="badge badge-green">Calibrated</span></td>
+                                    <td>$12,500.00</td>
+                                </tr>
+                                <tr>
+                                    <td><code>AST-MED-04</code></td>
+                                    <td>Marine Grade Automatic External Defibrillator (AED)</td>
+                                    <td>Safety Gear</td>
+                                    <td>Central Tower 1 &amp; 2</td>
+                                    <td><span class="badge badge-green">Ready</span></td>
+                                    <td>$4,800.00</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 5: MUNICIPAL FINANCE & PERMITS (Use Case 42) -->
+        <!-- ========================================== -->
+        <section id="tab-finance" class="tab-content">
+            <div class="section-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-eyebrow">DEPARTMENT ACCOUNTANT MODULE</div>
+                        <h2 class="card-title">Commercial Permits &amp; Purchase Transactions</h2>
+                        <p class="card-desc">Processes water testing lab POs, bills commercial beach event organizers, and registers receipts.</p>
+                    </div>
+                    <div class="financial-summary-badge">
+                        <span>Net Operating Surplus: </span>
+                        <strong class="text-emerald">+$31,500.00</strong>
+                    </div>
+                </div>
+
+                <!-- Master Data Preview Grid -->
+                <div class="two-col-grid mb-6">
+                    <!-- Contact Master -->
+                    <div class="sub-card">
+                        <h4 class="sub-card-title">👥 Contact Master Module</h4>
+                        <div class="contact-list">
+                            <div class="contact-item">
+                                <div class="contact-role badge-blue">Customer</div>
+                                <div class="contact-info">
+                                    <strong>Coastal Surf &amp; Volleyball Tournaments Inc.</strong>
+                                    <div class="text-muted">Commercial Beach Event Organizer • Tax ID: PAC-EV-901</div>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-role badge-purple">Vendor</div>
+                                <div class="contact-info">
+                                    <strong>Pacific Marine Bacteriological Laboratories</strong>
+                                    <div class="text-muted">Certified Water Quality Testing Laboratory • Vendor ID: V-LAB-44</div>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-role badge-amber">Vendor</div>
+                                <div class="contact-info">
+                                    <strong>Oceanic Rescue Craft &amp; Safety Equipment Ltd.</strong>
+                                    <div class="text-muted">Jet-Ski &amp; Rescue Supplies Provider • Vendor ID: V-EQP-12</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Master -->
+                    <div class="sub-card">
+                        <h4 class="sub-card-title">📦 Product &amp; Service Master</h4>
+                        <div class="contact-list">
+                            <div class="contact-item">
+                                <div class="contact-role badge-green">Service</div>
+                                <div class="contact-info">
+                                    <strong>Commercial Beach Event Permit</strong>
+                                    <div class="text-muted">Standard rate: $4,500.00 per event tournament • Income CoA: 4010</div>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-role badge-blue">Service</div>
+                                <div class="contact-info">
+                                    <strong>Weekly Ocean Water Bacteriological Testing</strong>
+                                    <div class="text-muted">Standard lab fee: $1,200.00 per test cycle • Expense CoA: 5020</div>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <div class="contact-role badge-amber">Goods</div>
+                                <div class="contact-info">
+                                    <strong>Rescue Jet-Ski Equipment &amp; Spares</strong>
+                                    <div class="text-muted">Municipal Marine Asset • Asset CoA: 1040</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Flow Table -->
+                <h3 class="subsection-title">Recent Municipal Transaction Journal</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Transaction Ref</th>
+                                <th>Type</th>
+                                <th>Party</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Journal / Account</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>SO-2026-088</code></td>
+                                <td><span class="badge badge-green">Sales Order</span></td>
+                                <td>Beach Sports Tournament Org</td>
+                                <td>Commercial Beach Event Permit (Zone 1)</td>
+                                <td>$4,500.00</td>
+                                <td>Sales Journal / 4010</td>
+                                <td><span class="badge badge-green">Invoiced &amp; Paid</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>INV-2026-142</code></td>
+                                <td><span class="badge badge-blue">Cust Invoice</span></td>
+                                <td>Coastal Surf Tournaments</td>
+                                <td>Permit order converted to Customer Invoice</td>
+                                <td>$4,500.00</td>
+                                <td>Bank Journal / 1010</td>
+                                <td><span class="badge badge-green">Bank Cleared</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>PO-2026-031</code></td>
+                                <td><span class="badge badge-amber">Purchase Order</span></td>
+                                <td>Pacific Marine Lab</td>
+                                <td>Weekly ocean water bacteriological testing</td>
+                                <td>$1,200.00</td>
+                                <td>Purchase Journal / 5020</td>
+                                <td><span class="badge badge-blue">Billed</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>BILL-2026-079</code></td>
+                                <td><span class="badge badge-purple">Vendor Bill</span></td>
+                                <td>Pacific Marine Lab</td>
+                                <td>PO converted to Vendor Bill, paid via Bank</td>
+                                <td>$1,200.00</td>
+                                <td>Bank Journal / 2010</td>
+                                <td><span class="badge badge-green">Disbursed</span></td>
+                            </tr>
+                            <tr>
+                                <td><code>EXP-2026-044</code></td>
+                                <td><span class="badge badge-blue">Operational</span></td>
+                                <td>Municipal Fuel Station</td>
+                                <td>Rescue Craft Fuel &amp; Scheduled Maintenance</td>
+                                <td>$640.00</td>
+                                <td>Expense Journal / 5030</td>
+                                <td><span class="badge badge-green">Paid</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- TAB 6: MUNICIPAL REPORTS & AUDITS         -->
+        <!-- ========================================== -->
+        <section id="tab-reports" class="tab-content">
+            <div class="section-card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-eyebrow">AUDIT &amp; REGULATORY COMPLIANCE</div>
+                        <h2 class="card-title">Municipal Financial &amp; Safety Reports</h2>
+                        <p class="card-desc">Official statements comparing safety operating budgets, water testing expenditures, and permit revenues.</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.print()">
+                        <span>🖨️</span> Print / Export Audit Report
+                    </button>
+                </div>
+
+                <!-- Report Cards Grid -->
+                <div class="three-col-grid mt-4">
+                    <!-- Report 1: Balance Sheet -->
+                    <div class="report-box">
+                        <div class="report-box-header">
+                            <h4>1. Municipal Balance Sheet</h4>
+                            <span class="report-tag">Audit Period: 2026</span>
+                        </div>
+                        <div class="report-table">
+                            <div class="report-section-title">ASSETS</div>
+                            <div class="report-line">
+                                <span>Rescue Watercraft Assets</span>
+                                <strong>$85,000.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Ocean Testing Gear</span>
+                                <strong>$12,500.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Cash &amp; Bank Reserves</span>
+                                <strong>$142,000.00</strong>
+                            </div>
+                            <div class="report-line total-line">
+                                <span>TOTAL ASSETS</span>
+                                <strong>$239,500.00</strong>
+                            </div>
+
+                            <div class="report-section-title mt-4">LIABILITIES &amp; RESERVES</div>
+                            <div class="report-line">
+                                <span>Testing Lab Payables</span>
+                                <strong>$2,400.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Equipment Creditors</span>
+                                <strong>$6,100.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Municipal Safety Fund Balance</span>
+                                <strong>$231,000.00</strong>
+                            </div>
+                            <div class="report-line total-line">
+                                <span>TOTAL LIABILITIES &amp; EQUITY</span>
+                                <strong>$239,500.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report 2: Profit & Loss Statement -->
+                    <div class="report-box">
+                        <div class="report-box-header">
+                            <h4>2. Profit &amp; Loss Statement</h4>
+                            <span class="report-tag">Coastal Safety Fund</span>
+                        </div>
+                        <div class="report-table">
+                            <div class="report-section-title">OPERATING REVENUE</div>
+                            <div class="report-line">
+                                <span>Beach Event Permit Revenue</span>
+                                <strong class="text-emerald">+$38,500.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Coastal Commercial Concession Fees</span>
+                                <strong class="text-emerald">+$14,200.00</strong>
+                            </div>
+                            <div class="report-line total-line">
+                                <span>GROSS REVENUE</span>
+                                <strong>$52,700.00</strong>
+                            </div>
+
+                            <div class="report-section-title mt-4">OPERATIONAL EXPENSES</div>
+                            <div class="report-line">
+                                <span>Water Bacteriological Testing</span>
+                                <strong class="text-amber">-$12,800.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Rescue Craft Fuel &amp; Maintenance</span>
+                                <strong class="text-amber">-$8,400.00</strong>
+                            </div>
+                            <div class="report-line total-line text-emerald">
+                                <span>NET OPERATING BALANCE</span>
+                                <strong>+$31,500.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report 3: Safety Zone Budget Variance -->
+                    <div class="report-box">
+                        <div class="report-box-header">
+                            <h4>3. Safety Budget Variance Report</h4>
+                            <span class="report-tag">Zone 1 Analytic Account</span>
+                        </div>
+                        <div class="report-table">
+                            <div class="report-section-title">CENTRAL PUBLIC BEACH ZONE 1</div>
+                            <div class="report-line">
+                                <span>Planned Safety Operating Budget</span>
+                                <strong>$50,000.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Actual Lab Testing Expenditures</span>
+                                <strong>$12,800.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Actual Lifeguard Operations</span>
+                                <strong>$25,400.00</strong>
+                            </div>
+                            <div class="report-line">
+                                <span>Total Actual Expenditures</span>
+                                <strong>$38,200.00</strong>
+                            </div>
+                            <div class="report-line total-line text-emerald">
+                                <span>FAVORABLE VARIANCE (SURPLUS)</span>
+                                <strong>+$11,800.00</strong>
+                            </div>
+
+                            <div class="budget-progress-container mt-4">
+                                <div class="budget-label-row">
+                                    <span>Budget Utilization: 76.4%</span>
+                                    <span>$38.2k / $50.0k</span>
+                                </div>
+                                <div class="budget-bar">
+                                    <div class="budget-fill" style="width: 76.4%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Dialog for Recording Water Sample -->
+    <div id="sample-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <div>
+                    <div class="card-eyebrow">QUICK INGESTION</div>
+                    <h3 class="modal-title">Record Water Quality Sample</h3>
+                </div>
+                <button type="button" id="btn-close-modal" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="modal-sample-form" class="smart-form">
+                    <div class="form-group">
+                        <label for="modal-sector-select">Beach Sector <span class="required">*</span></label>
+                        <select id="modal-sector-select" required>
+                            <option value="">Select a sector...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modal-sample-date">Collection Date &amp; Time <span class="required">*</span></label>
+                        <input type="datetime-local" id="modal-sample-date" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modal-bacteria-count">Bacteria Count (CFU/100mL) <span class="required">*</span></label>
+                            <input type="number" id="modal-bacteria-count" min="0" step="0.1" placeholder="e.g. 145" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="modal-safety-threshold">Threshold (CFU/100mL) <span class="required">*</span></label>
+                            <input type="number" id="modal-safety-threshold" min="1" step="0.1" value="100.0" required>
+                        </div>
+                    </div>
+
+                    <div class="risk-preview-box" id="modal-risk-preview">
+                        <span id="modal-preview-text">🟢 GREEN — Safe for Swimming</span>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" id="btn-cancel-modal" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Ingest Sample</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Municipal Portal Footer -->
+    <footer class="app-footer">
+        <div class="footer-container">
+            <div class="footer-brand">
+                <span class="footer-crest">🌊</span>
+                <div>
+                    <strong>Pacifica Municipal Smart Public Beach Safety &amp; Water Quality Monitoring System</strong>
+                    <div class="footer-sub">Coastal Municipality Public Safety Platform • Enterprise Java 21 / Spring Boot 4 / Thymeleaf</div>
+                </div>
+            </div>
+            <div class="footer-meta">
+                <span>Compliance: EPA Water Quality Guidelines</span>
+                <span class="sep">•</span>
+                <span>Active Profile: Municipal Core</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Frontend Interactive Script -->
+    <script th:src="@{/js/app.js}" defer></script>
+</body>
+</html>
